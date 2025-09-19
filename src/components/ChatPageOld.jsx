@@ -1,53 +1,304 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import ChatIcon from '../assets/chat.svg';
-import { apiService } from '../services/apiService';
 import { useAuth, useUserId } from '../hooks/useAuth';
+import { useChat } from '../hooks/useChat';
+import { useExam } from '../hooks/useExam';
+import { useUI } from '../hooks/useUI';
+import { ExamForm } from './ExamForm';
+import { ExamDisplay } from './ExamDisplay';
+import { addExamResultsToChat } from '../utils/examUtils';
+import { apiService } from '../services/apiService';
 
 function ChatPage() {
   const { user } = useAuth();
   const userId = useUserId();
   
-  const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [showNewChatModal, setShowNewChatModal] = useState(false);
-  const [newChatSubject, setNewChatSubject] = useState('');
-  const [currentChatSubject, setCurrentChatSubject] = useState('');
-  
-  // Chat management
-  const [currentChatId, setCurrentChatId] = useState(null);
-  const [userChats, setUserChats] = useState([]);
-  const [messages, setMessages] = useState([]);
-  
-  // Exam mode state
-  const [isExamMode, setIsExamMode] = useState(false);
-  const [showExamForm, setShowExamForm] = useState(false);
-  const [currentExam, setCurrentExam] = useState(null);
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [examAnswers, setExamAnswers] = useState([]);
-  const [examResults, setExamResults] = useState(null);
-  const [userExams, setUserExams] = useState([]);
-  const [showExamHistory, setShowExamHistory] = useState(false);
-  
-  // Exam form state
-  const [examForm, setExamForm] = useState({
-    title: '',
-    subject: '',
-    exam_type: 'mcq',
-    num_questions: 10,
-    difficulty: 'medium',
-    topic: ''
-  });
-  
-  const [examPanelWidth, setExamPanelWidth] = useState(720);
-  const [isResizing, setIsResizing] = useState(false);
+  // Custom hooks
+  const chat = useChat(userId);
+  const exam = useExam(userId);
+  const ui = useUI();
 
-  function cleanResponse(text) {
-    // Clean various markdown and formatting elements
-    return text
-      .replace(/\*\*/g, "")           // Remove bold markers
-      .replace(/\*/g, "")             // Remove italic markers
-      .replace(/^\* .*$/gm, "")       // Remove bullet points
-      .replace(/^#{1,6}\s*/gm, "")    // Remove headers
+  // Create bound exam results function
+  const handleAddExamResultsToChat = addExamResultsToChat(
+    null, null, chat.messages, chat.setMessages, 
+    chat.currentChatId, userId, apiService, chat.currentChatSubject
+  );
+
+  // Add resize event listeners
+  useEffect(() => {
+    const handleMouseMove = ui.handleResize;
+    const handleMouseUp = ui.stopResize;
+
+    if (ui.isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [ui.isResizing, ui.handleResize, ui.stopResize]);
+
+  const handleCreateNewChat = async () => {
+    if (!ui.newChatSubject.trim()) {
+      alert('Please enter a subject for the chat');
+      return;
+    }
+
+    try {
+      await chat.createNewChat(ui.newChatSubject);
+      ui.setShowNewChatModal(false);
+      ui.setNewChatSubject('');
+    } catch (error) {
+      alert('Failed to create new chat. Please try again.');
+    }
+  };
+
+  const handleGenerateExam = async () => {
+    try {
+      await exam.generateExam(chat.currentChatId);
+    } catch (error) {
+      alert('Failed to generate exam. Please try again.');
+    }
+  };
+
+  const handleSubmitExam = async () => {
+    try {
+      await exam.submitExam((results, examData) => 
+        handleAddExamResultsToChat(results, examData)
+      );
+    } catch (error) {
+      alert('Failed to submit exam. Please try again.');
+    }
+  };
+
+  const handleLoadExamFromHistory = async (examId) => {
+    await exam.loadExamFromHistory(examId, (results, examData) => 
+      handleAddExamResultsToChat(results, examData)
+    );
+  };
+
+  return (
+    <div className="flex h-screen bg-gray-50">
+      {/* Sidebar */}
+      <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
+        <div className="p-4 border-b border-gray-200">
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-xl font-bold text-gray-900">EduAI Chat</h1>
+            <div className="flex gap-2">
+              <button
+                onClick={exam.toggleExamMode}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  exam.isExamMode
+                    ? 'bg-black text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                📝 Exam
+              </button>
+              <button
+                onClick={() => ui.setShowNewChatModal(true)}
+                className="bg-black text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors"
+              >
+                + New Chat
+              </button>
+            </div>
+          </div>
+          
+          {user && (
+            <div className="text-sm text-gray-600">
+              Welcome, {user.user_metadata?.display_name || user.email?.split('@')[0] || 'User'}!
+            </div>
+          )}
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4">
+          <h2 className="text-sm font-medium text-gray-900 mb-3">Chat History</h2>
+          <div className="space-y-2">
+            {chat.userChats.map((chatItem) => (
+              <div
+                key={chatItem.chat_id}
+                onClick={() => chat.loadChat(chatItem.chat_id)}
+                className={`p-3 rounded-lg cursor-pointer transition-colors ${
+                  chat.currentChatId === chatItem.chat_id
+                    ? 'bg-black text-white'
+                    : 'bg-gray-100 hover:bg-gray-200 text-gray-900'
+                }`}
+              >
+                <div className="font-medium truncate">{chatItem.subject}</div>
+                <div className={`text-xs ${
+                  chat.currentChatId === chatItem.chat_id ? 'text-gray-300' : 'text-gray-500'
+                } mt-1`}>
+                  {new Date(chatItem.updated_at).toLocaleDateString()}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Main Chat Area */}
+      <div className={`flex-1 flex flex-col ${exam.isExamMode ? `mr-[${ui.examPanelWidth}px]` : ''}`}>
+        <div className="bg-white border-b border-gray-200 p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <img src={ChatIcon} alt="Chat" className="w-6 h-6" />
+              <h2 className="text-lg font-semibold text-gray-900">
+                {chat.currentChatSubject || 'Select a chat or start a new one'}
+              </h2>
+            </div>
+            
+            {exam.isExamMode && (
+              <div className="text-sm text-gray-600">
+                Exam Mode Active
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {chat.messages.map((message) => (
+            <div
+              key={message.id}
+              className={`flex ${message.from === 'user' ? 'justify-end' : 'justify-start'}`}
+            >
+              <div
+                className={`max-w-[80%] p-3 rounded-lg ${
+                  message.from === 'user'
+                    ? 'bg-black text-white'
+                    : 'bg-white text-gray-900 border border-gray-200'
+                }`}
+              >
+                <div className="whitespace-pre-wrap">{message.text}</div>
+                <div className={`text-xs mt-2 ${
+                  message.from === 'user' ? 'text-gray-300' : 'text-gray-500'
+                }`}>
+                  {new Date(message.timestamp).toLocaleTimeString()}
+                </div>
+              </div>
+            </div>
+          ))}
+          
+          {chat.isLoading && (
+            <div className="flex justify-start">
+              <div className="bg-white text-gray-900 border border-gray-200 p-3 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-300 border-t-gray-600"></div>
+                  <span>Thinking...</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {chat.currentChatId && !exam.isExamMode && (
+          <div className="bg-white border-t border-gray-200 p-4">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={chat.input}
+                onChange={(e) => chat.setInput(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && chat.sendMessage()}
+                placeholder="Type your message..."
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                disabled={chat.isLoading}
+              />
+              <button
+                onClick={chat.sendMessage}
+                disabled={!chat.input.trim() || chat.isLoading}
+                className="bg-black text-white px-6 py-2 rounded-lg font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Send
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Exam Panel */}
+      {exam.isExamMode && (
+        <div 
+          className="bg-white border-l border-gray-200 flex flex-col"
+          style={{ width: ui.examPanelWidth }}
+        >
+          <div 
+            className="w-1 bg-gray-300 hover:bg-gray-400 cursor-col-resize absolute left-0 top-0 bottom-0 z-10"
+            onMouseDown={ui.startResize}
+          />
+          
+          <div className="p-4 border-b border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-900">Exam Center</h2>
+          </div>
+          
+          <div className="flex-1 overflow-y-auto p-4">
+            {exam.showExamForm ? (
+              <ExamForm
+                examForm={exam.examForm}
+                handleExamFormChange={exam.handleExamFormChange}
+                generateExam={handleGenerateExam}
+                isLoading={chat.isLoading}
+                userExams={exam.userExams}
+                showExamHistory={exam.showExamHistory}
+                setShowExamHistory={exam.setShowExamHistory}
+                loadUserExams={exam.loadUserExams}
+                loadExamFromHistory={handleLoadExamFromHistory}
+              />
+            ) : (
+              <ExamDisplay
+                currentExam={exam.currentExam}
+                currentQuestionIndex={exam.currentQuestionIndex}
+                setCurrentQuestionIndex={exam.setCurrentQuestionIndex}
+                examAnswers={exam.examAnswers}
+                handleAnswerSelect={exam.handleAnswerSelect}
+                submitExam={handleSubmitExam}
+                examResults={exam.examResults}
+                restartExam={exam.restartExam}
+              />
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* New Chat Modal */}
+      {ui.showNewChatModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-xl w-96">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Start New Chat</h2>
+            <input
+              type="text"
+              value={ui.newChatSubject}
+              onChange={(e) => ui.setNewChatSubject(e.target.value)}
+              placeholder="Enter chat subject..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent mb-4"
+              autoFocus
+              onKeyPress={(e) => e.key === 'Enter' && handleCreateNewChat()}
+            />
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => {
+                  ui.setShowNewChatModal(false);
+                  ui.setNewChatSubject('');
+                }}
+                className="px-4 py-2 text-gray-600 hover:text-gray-900"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateNewChat}
+                className="bg-black text-white px-4 py-2 rounded-lg font-medium hover:bg-gray-800 transition-colors"
+              >
+                Create Chat
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default ChatPage;
       .replace(/```[\s\S]*?```/g, "") // Remove code blocks
       .replace(/`([^`]+)`/g, "$1")    // Remove inline code markers
       .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // Remove links but keep text
@@ -69,28 +320,12 @@ function ChatPage() {
 
   const loadUserChats = async () => {
     try {
-      console.log('=== LOADING USER CHATS ===');
       console.log('Loading chats for userId:', userId);
-      
-      if (!userId) {
-        console.warn('No userId available, skipping chat loading');
-        return;
-      }
-      
       const chats = await apiService.getUserChats(userId);
-      console.log('Raw chats response:', chats);
-      console.log('Chats array length:', chats?.length);
-      
-      if (chats && chats.length > 0) {
-        console.log('First chat structure:', chats[0]);
-        console.log('Chat data keys:', Object.keys(chats[0]));
-      }
-      
-      setUserChats(chats || []);
-      console.log('=== CHAT LOADING COMPLETE ===');
+      console.log('Loaded chats:', chats);
+      setUserChats(chats);
     } catch (error) {
       console.error('Failed to load user chats:', error);
-      setUserChats([]); // Set empty array on error
     }
   };
 
@@ -138,28 +373,14 @@ function ChatPage() {
 
   const loadChat = async (chat) => {
     try {
-      console.log('=== LOADING CHAT ===');
-      console.log('Chat object:', chat);
-      console.log('Chat keys:', Object.keys(chat));
-      
       // Save current chat before switching
       if (currentChatId) {
         await saveCurrentChat();
       }
       
-      console.log('Setting chat ID:', chat.chat_id);
-      console.log('Setting chat subject:', chat.subject);
-      console.log('Chat data:', chat.chat_data);
-      console.log('Messages from chat data:', chat.chat_data?.messages);
-      
       setCurrentChatId(chat.chat_id);
-      setCurrentChatSubject(chat.subject || 'Untitled Chat');
-      
-      const chatMessages = chat.chat_data?.messages || [];
-      console.log('Setting messages:', chatMessages.length, 'messages');
-      setMessages(chatMessages);
-      
-      console.log('=== CHAT LOADING COMPLETE ===');
+      setCurrentChatSubject(chat.subject || chat.title);
+      setMessages(chat.chat_data?.messages || []);
     } catch (error) {
       console.error('Failed to load chat:', error);
     }
@@ -659,7 +880,7 @@ function ChatPage() {
         </div>
         
         {/* New Chat Button */}
-        <div className="p-4 space-y-2">
+        <div className="p-4">
           <button 
             onClick={handleNewChat}
             className="w-full bg-black text-white py-2 px-4 rounded-lg font-medium hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
@@ -667,51 +888,34 @@ function ChatPage() {
             <span className="text-lg">+</span>
             New Chat
           </button>
-          
-          <button
-            onClick={() => {
-              console.log('Manual chat refresh clicked');
-              loadUserChats();
-            }}
-            className="w-full bg-gray-100 text-gray-700 py-1 px-2 rounded text-xs hover:bg-gray-200 h-10"
-          >
-            🔄 Refresh Chats
-          </button>
         </div>
         
         {/* Chat List */}
         <div className="flex-1 overflow-y-auto">
-          <div className="p-2">
-            {userChats.length > 0 ? (
-              <div className="space-y-1">
-                {console.log('Rendering chat list. UserChats:', userChats)}
-                {userChats.map((chat) => (
-                  <button
-                    key={chat.chat_id}
-                    onClick={() => {
-                      console.log('Clicking on chat:', chat.chat_id, chat.subject);
-                      loadChat(chat);
-                    }}
-                    className={`w-full text-left p-3 rounded-lg transition-colors hover:bg-gray-300 ${
-                      currentChatId === chat.chat_id ? 'bg-gray-300' : ''
-                    }`}
-                  >
-                    <div className="font-medium text-gray-800 truncate">
-                      {chat.subject || 'Untitled Chat'}
-                    </div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      {new Date(chat.updated_at || chat.created_at).toLocaleDateString()}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <div className="p-4 text-center text-gray-600">
-                <p>No chats yet.</p>
-                <p className="text-sm mt-1">Start a new conversation!</p>
-              </div>
-            )}
-          </div>
+          {userChats.length > 0 ? (
+            <div className="space-y-1 p-2">
+              {userChats.map((chat) => (
+                <button
+                  key={chat.chat_id}
+                  onClick={() => loadChat(chat)}
+                  className={`w-full text-left p-3 rounded-lg transition-colors hover:bg-gray-300 ${
+                    currentChatId === chat.chat_id ? 'bg-gray-300' : ''
+                  }`}
+                >
+                  <div className="font-medium text-gray-800 truncate">{chat.title}</div>
+                  <div className="text-sm text-gray-600 truncate">{chat.subject}</div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {new Date(chat.updated_at).toLocaleDateString()}
+                  </div>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="p-4 text-center text-gray-600">
+              <p>No chats yet.</p>
+              <p className="text-sm mt-1">Start a new conversation!</p>
+            </div>
+          )}
         </div>
         
         {/* Bottom Icons */}
@@ -850,170 +1054,12 @@ function ChatPage() {
       {/* Right Panel - Exam Section */}
       <div className="bg-gray-50 border-l border-gray-200 flex flex-col" style={{ width: `${examPanelWidth}px` }}>
         {!isExamMode ? (
-          /* Chat Mode - Show exam info, score summary, or history */
-          <div className="p-6 flex flex-col h-full">
-            {currentExam && examResults ? (
-              /* Show Exam Score Summary */
-              <div className="flex-1 flex flex-col">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900">Exam Results</h3>
-                  <button
-                    onClick={() => {
-                      setCurrentExam(null);
-                      setExamResults(null);
-                      setExamAnswers([]);
-                    }}
-                    className="text-gray-500 hover:text-gray-700 transition-colors"
-                  >
-                    ✕ Close
-                  </button>
-                </div>
-                
-                <div className="bg-white rounded-lg p-6 border shadow-sm mb-4">
-                  <h4 className="text-xl font-bold text-gray-900 mb-2">{currentExam.title}</h4>
-                  <p className="text-gray-600 mb-4">{currentExam.subject}</p>
-                  
-                  <div className="text-center mb-6">
-                    <div className="bg-gray-100 rounded-lg p-6">
-                      <div className="text-4xl font-bold text-gray-900 mb-2">
-                        {examResults.score}/{examResults.max_score}
-                      </div>
-                      <div className="text-2xl font-semibold text-gray-700 mb-1">
-                        {examResults.percentage.toFixed(1)}%
-                      </div>
-                      <div className={`text-sm font-medium ${
-                        examResults.percentage >= 80 ? 'text-green-600' :
-                        examResults.percentage >= 60 ? 'text-yellow-600' : 'text-red-600'
-                      }`}>
-                        {examResults.percentage >= 80 ? 'Excellent!' :
-                         examResults.percentage >= 60 ? 'Good Job!' : 'Keep Practicing!'}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Exam Type:</span>
-                      <span className="font-medium">{currentExam.exam_type ? currentExam.exam_type.toUpperCase() : 'MCQ'}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Questions:</span>
-                      <span className="font-medium">{currentExam.questions?.length || 0}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Date Completed:</span>
-                      <span className="font-medium">{new Date(currentExam.updated_at || currentExam.created_at).toLocaleDateString()}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Status:</span>
-                      <span className="font-medium text-green-600">Completed</span>
-                    </div>
-                  </div>
-                </div>
-                
-                <button
-                  onClick={() => {
-                    setShowExamHistory(true);
-                    setCurrentExam(null);
-                    setExamResults(null);
-                    setExamAnswers([]);
-                  }}
-                  className="bg-gray-100 text-gray-700 py-2 px-4 rounded-lg font-medium hover:bg-gray-200 transition-colors"
-                >
-                  ← Back to Exam History
-                </button>
-              </div>
-            ) : (
-              /* Show Exam History or Controls */
-              <>
-                <div className="flex flex-col gap-2 mb-4">
-                  <button
-                    onClick={() => {
-                      console.log('Toggling exam history. Current state:', showExamHistory);
-                      console.log('Current userExams:', userExams);
-                      console.log('UserId:', userId);
-                      setShowExamHistory(!showExamHistory);
-                    }}
-                    className="w-full bg-gray-100 text-gray-700 py-2 px-4 rounded-lg font-medium hover:bg-gray-200 transition-colors"
-                  >
-                    {showExamHistory ? 'Hide' : 'View'} Exam History ({userExams.length})
-                  </button>
-                  
-                  <button
-                    onClick={() => {
-                      console.log('Manual exam refresh clicked');
-                      loadUserExams();
-                    }}
-                    className="w-full bg-gray-100 text-gray-700 py-2 px-4 rounded-lg font-medium hover:bg-gray-200 transition-colors text-sm"
-                  >
-                    🔄 Refresh Exams
-                  </button>
-                </div>
-                  
-                  {showExamHistory && (
-                    <div className="flex-1 flex flex-col min-h-0">
-                      <h4 className="font-medium text-gray-900 text-base mb-3">Previous Exams:</h4>
-                      {console.log('Rendering exam history. ShowExamHistory:', showExamHistory, 'UserExams:', userExams)}
-                      <div className="flex-1 overflow-y-auto space-y-3">
-                        {userExams.length === 0 ? (
-                          <div className="text-center py-12 text-gray-500">
-                            <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                            </svg>
-                            <p className="text-lg font-medium text-gray-900 mb-1">No exams yet</p>
-                            <p className="text-sm">Create your first exam to see it here</p>
-                          </div>
-                        ) : (
-                          userExams.map((exam) => (
-                          <div
-                            key={exam.exam_id}
-                            onClick={() => {
-                              console.log('Clicking on exam:', exam.exam_id);
-                              loadExamFromHistory(exam.exam_id);
-                            }}
-                            className="bg-white p-4 rounded-lg border cursor-pointer hover:shadow-md transition-all"
-                          >
-                            <div className="flex justify-between items-start">
-                              <div className="flex-1">
-                                <h5 className="text-base font-medium text-gray-900 mb-1">
-                                  {exam.title}
-                                </h5>
-                                <p className="text-sm text-gray-600 mb-2">{exam.subject}</p>
-                                <div className="flex items-center gap-3">
-                                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                                    exam.status === 'completed' 
-                                      ? 'bg-green-100 text-green-800' 
-                                      : 'bg-yellow-100 text-yellow-800'
-                                  }`}>
-                                    {exam.status}
-                                  </span>
-                                  <span className="text-xs text-gray-500">
-                                    {exam.exam_type ? exam.exam_type.toUpperCase() : 'MCQ'}
-                                  </span>
-                                  <span className="text-xs text-gray-500">
-                                    {new Date(exam.updated_at || exam.created_at).toLocaleDateString()}
-                                  </span>
-                                </div>
-                              </div>
-                              {exam.status === 'completed' && typeof exam.percentage === 'number' && !isNaN(exam.percentage) && (
-                                <div className="text-right">
-                                  <div className="text-lg font-bold text-gray-900">
-                                    {exam.percentage.toFixed(0)}%
-                                  </div>
-                                  <div className="text-xs text-gray-500">
-                                    {exam.score || 0}/{exam.max_score || 0}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
+          /* Chat Mode - Show chat info or history */
+          <div className="p-6 text-center text-gray-500">
+            <svg className="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-3.582 8-8 8a8.951 8.951 0 01-2.66-.4c-.893.334-1.892.456-2.896.456-2.076 0-3.964-.568-5.444-1.552A8 8 0 0121 12z" />
+            </svg>
+            <p className="text-sm">Toggle exam mode to create and take exams</p>
           </div>
         ) : (
           <>
@@ -1136,6 +1182,74 @@ function ChatPage() {
                     {isLoading ? 'Generating...' : 'Generate Exam'}
                   </button>
                   
+                  <button
+                    onClick={() => {
+                      console.log('Toggling exam history. Current state:', showExamHistory);
+                      console.log('Current userExams:', userExams);
+                      console.log('UserId:', userId);
+                      setShowExamHistory(!showExamHistory);
+                    }}
+                    className="w-full bg-gray-100 text-gray-700 py-2 px-4 rounded-lg font-medium hover:bg-gray-200 transition-colors mb-2"
+                  >
+                    {showExamHistory ? 'Hide' : 'View'} Exam History ({userExams.length})
+                  </button>
+                  
+                  <button
+                    onClick={() => {
+                      console.log('Manual exam refresh clicked');
+                      loadUserExams();
+                    }}
+                    className="w-full bg-blue-100 text-blue-700 py-2 px-4 rounded-lg font-medium hover:bg-blue-200 transition-colors text-sm"
+                  >
+                    🔄 Refresh Exams
+                  </button>
+                  
+                  {showExamHistory && (
+                    <div className="mt-4 space-y-2 max-h-48 overflow-y-auto">
+                      <h4 className="font-medium text-gray-900 text-sm">Previous Exams:</h4>
+                      {console.log('Rendering exam history. ShowExamHistory:', showExamHistory, 'UserExams:', userExams)}
+                      {userExams.length === 0 ? (
+                        <p className="text-sm text-gray-500">No exams found</p>
+                      ) : (
+                        userExams.map((exam) => (
+                          <div
+                            key={exam.exam_id}
+                            onClick={() => {
+                              console.log('Clicking on exam:', exam.exam_id);
+                              loadExamFromHistory(exam.exam_id);
+                            }}
+                            className="bg-white p-3 rounded-lg border cursor-pointer hover:bg-gray-50 transition-colors"
+                          >
+                            <div className="flex justify-between items-start">
+                              <div className="flex-1">
+                                <h5 className="text-sm font-medium text-gray-900 truncate">
+                                  {exam.title}
+                                </h5>
+                                <p className="text-xs text-gray-600">{exam.subject}</p>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <span className={`text-xs px-2 py-1 rounded-full ${
+                                    exam.status === 'completed' 
+                                      ? 'bg-green-100 text-green-800' 
+                                      : 'bg-yellow-100 text-yellow-800'
+                                  }`}>
+                                    {exam.status}
+                                  </span>
+                                  <span className="text-xs text-gray-500">
+                                    {exam.exam_type ? exam.exam_type.toUpperCase() : 'MCQ'}
+                                  </span>
+                                </div>
+                              </div>
+                              {exam.status === 'completed' && typeof exam.percentage === 'number' && !isNaN(exam.percentage) && (
+                                <div className="text-xs font-medium text-gray-900">
+                                  {exam.percentage.toFixed(0)}%
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
                 </div>
               ) : currentExam && !examResults ? (
                 /* Exam Taking Interface */

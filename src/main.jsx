@@ -2,6 +2,8 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { RouterProvider, createBrowserRouter } from 'react-router-dom'
 import './index.css'
+import { AuthProvider } from './hooks/useAuth'
+import AppContent from './App'
 import LandingPage from './components/LandingPage'
 import ChatPage from './components/ChatPage'
 import Dashboard from './components/Dashboard'
@@ -10,6 +12,10 @@ import History from './components/History'
 const router = createBrowserRouter([
   {
     path: "/",
+    element: <AppContent />,
+  },
+  {
+    path: "/landing", 
     element: <LandingPage />,
   },
   {
@@ -21,13 +27,15 @@ const router = createBrowserRouter([
     element: <Dashboard />,
   },
   {
-    path: "history",
+    path: "/history",
     element: <History />,
   }
 ]);
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <RouterProvider router={router} />
+    <AuthProvider>
+      <RouterProvider router={router} />
+    </AuthProvider>
   </StrictMode>,
 )
