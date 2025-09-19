@@ -4,12 +4,18 @@ import supabase from '../supabase';
 import Avatar from './Avatar';
 import ThreeLine from '../assets/three-line.svg';
 
-function Layout({ children, showHero = false, heroContent = null }) {
+function Layout({ children, showHero = false, heroContent = null, onNavigate }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, loading } = useAuth();
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
+  };
+
+  const handleNavClick = (page) => {
+    if (onNavigate) {
+      onNavigate(page);
+    }
   };
 
   return (
@@ -33,9 +39,9 @@ function Layout({ children, showHero = false, heroContent = null }) {
           </div>
           
           <div className="hidden md:flex items-center justify-center space-x-8">
-            <a href="/" className="hover:underline">Home</a>
-            <a href="/dashboard" className="hover:underline">Dashboard</a>
-            <a href="#features" className="hover:underline">Features</a>
+            <button onClick={() => handleNavClick('landing')} className="hover:underline">Home</button>
+            <button onClick={() => handleNavClick('dashboard')} className="hover:underline">Dashboard</button>
+            <button onClick={() => handleNavClick('chat')} className="hover:underline">Chat</button>
             <a href="#about" className="hover:underline">About Us</a>
           </div>
 

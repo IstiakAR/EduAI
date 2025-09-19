@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from './hooks/useAuth';
 import LandingPage from './components/LandingPage';
 import ChatPage from './components/ChatPage';
+import Dashboard from './components/Dashboard';
 import AuthModal from './components/AuthModal';
 import './index.css';
 
@@ -14,7 +15,11 @@ function AppContent() {
 
   const handleGetStarted = () => {
     console.log('Get started clicked');
-    setCurrentPage('chat');
+    if (user) {
+      setCurrentPage('dashboard');
+    } else {
+      setCurrentPage('chat');
+    }
   };
 
   const handleSignIn = () => {
@@ -25,7 +30,12 @@ function AppContent() {
   const handleAuthSuccess = () => {
     console.log('Auth success');
     setShowAuthModal(false);
-    setCurrentPage('chat');
+    setCurrentPage('dashboard');
+  };
+
+  const handleNavigate = (page) => {
+    console.log('Navigating to:', page);
+    setCurrentPage(page);
   };
 
   if (loading) {
@@ -47,8 +57,10 @@ function AppContent() {
           onGetStarted={handleGetStarted}
           onSignIn={handleSignIn}
         />
+      ) : currentPage === 'dashboard' ? (
+        <Dashboard onNavigate={handleNavigate} />
       ) : (
-        <ChatPage />
+        <ChatPage onNavigate={handleNavigate} />
       )}
       
       {showAuthModal && (

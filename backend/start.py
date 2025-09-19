@@ -4,6 +4,10 @@ Start the ultra-simple EduAI backend server
 import uvicorn
 import os
 import sys
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 def main():
     """Start the ultra-simple server."""

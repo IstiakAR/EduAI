@@ -3,7 +3,7 @@ import ChatIcon from '../assets/chat.svg';
 import { apiService } from '../services/apiService';
 import { useAuth, useUserId } from '../hooks/useAuth';
 
-function ChatPage() {
+function ChatPage({ onNavigate }) {
   const { user } = useAuth();
   const userId = useUserId();
   

@@ -3,7 +3,7 @@ import supabase from '../supabase';
 
 class ApiService {
   constructor() {
-    this.baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8001';
+    this.baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
   }
 
   async sendMessage(message, context = null) {
@@ -47,10 +47,14 @@ class ApiService {
       
       // First, generate exam content using AI
       const aiPrompt = this.createExamPrompt(examData);
+      console.log('AI Prompt:', aiPrompt);
+      
       const aiResponse = await this.sendMessage(aiPrompt);
+      console.log('AI Response received:', aiResponse);
       
       // Parse AI response to extract questions
       const examQuestions = this.parseAIExamResponse(aiResponse, examData.exam_type);
+      console.log('Parsed questions:', examQuestions);
       
       // Calculate max score
       const maxScore = examData.exam_type === 'mcq' 
@@ -149,20 +153,30 @@ Format the response as a JSON array:
 
   parseAIExamResponse(aiResponse, examType) {
     try {
+      console.log('Parsing AI response:', aiResponse);
+      console.log('Exam type:', examType);
+      
       // Extract JSON from AI response
       const start_idx = aiResponse.indexOf('[');
       const end_idx = aiResponse.lastIndexOf(']') + 1;
+      
+      console.log('JSON start index:', start_idx);
+      console.log('JSON end index:', end_idx);
       
       if (start_idx === -1 || end_idx === 0) {
         throw new Error('No JSON array found in AI response');
       }
       
       const jsonStr = aiResponse.substring(start_idx, end_idx);
+      console.log('Extracted JSON string:', jsonStr);
+      
       const questions = JSON.parse(jsonStr);
+      console.log('Parsed questions:', questions);
       
       return questions;
     } catch (error) {
       console.error('Failed to parse AI response, using fallback questions:', error);
+      console.log('Original AI response that failed:', aiResponse);
       
       // Fallback questions
       if (examType === 'mcq') {
