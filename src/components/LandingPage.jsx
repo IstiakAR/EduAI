@@ -2,6 +2,8 @@ import { useState } from "react";
 import AuthModal from './AuthModal';
 import FeatureCard from './FeatureCard';
 import TestimonialCard from './TestimonialCard';
+import TeamMember from './TeamMember';
+import Avatar from './Avatar';
 import { useAuth } from '../hooks/useAuth';
 import supabase from '../supabase';
 
@@ -45,13 +47,12 @@ function LandingPage() {
               {user ? (
                 <div className="flex items-center space-x-4">
                   <div className="flex items-center space-x-2">
-                    {user.user_metadata?.avatar_url && (
-                      <img 
-                        src={user.user_metadata.avatar_url} 
-                        alt="Profile" 
-                        className="w-8 h-8 rounded-full"
-                      />
-                    )}
+                    <Avatar 
+                      src={user.user_metadata?.avatar_url}
+                      alt={`${user.user_metadata?.full_name || user.email?.split('@')[0] || 'User'}'s avatar`}
+                      size="w-8 h-8"
+                      fallbackText={(user.user_metadata?.full_name || user.email?.split('@')[0] || 'U')[0].toUpperCase()}
+                    />
                     <span className="text-sm">
                       {user.user_metadata?.full_name || user.email?.split('@')[0] || 'User'}
                     </span>
@@ -85,13 +86,12 @@ function LandingPage() {
               {user ? (
                 <div className="space-y-2">
                   <div className="flex items-center justify-center space-x-2 py-2">
-                    {user.user_metadata?.avatar_url && (
-                      <img 
-                        src={user.user_metadata.avatar_url} 
-                        alt="Profile" 
-                        className="w-6 h-6 rounded-full"
-                      />
-                    )}
+                    <Avatar 
+                      src={user.user_metadata?.avatar_url}
+                      alt={`${user.user_metadata?.full_name || user.email?.split('@')[0] || 'User'}'s avatar`}
+                      size="w-6 h-6"
+                      fallbackText={(user.user_metadata?.full_name || user.email?.split('@')[0] || 'U')[0].toUpperCase()}
+                    />
                     <span className="text-sm">
                       {user.user_metadata?.full_name || user.email?.split('@')[0] || 'User'}
                     </span>
@@ -137,7 +137,7 @@ function LandingPage() {
             {user ? (
               <div className="text-center">
                 <p className="text-lg mb-4">Welcome back, {user.user_metadata?.full_name || user.email?.split('@')[0] || 'User'}!</p>
-                <button className="px-8 py-4 bg-black text-white rounded-sm font-medium hover:bg-gray-800 transition-colors">
+                <button className="px-8 py-4 bg-black text-white rounded-sm font-medium hover:bg-gray-800 transition-colors" onClick={() => window.location.href = '/chat'}>
                   Continue Learning
                 </button>
               </div>
@@ -194,6 +194,53 @@ function LandingPage() {
             <TestimonialCard
               quote="The adaptive exams helped me identify my weak areas and improve significantly."
               author="Michael, Medical Student"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* About Us Section */}
+      <section id="about" className="px-6 py-16 md:px-12 md:py-24">
+        <div className="max-w-4xl mx-auto text-center">
+          <div className="w-16 h-1 bg-black mx-auto mb-4"></div>
+          <h3 className="text-2xl md:text-3xl font-bold mb-12">About Us</h3>
+          <p className="text-lg text-gray-600 mb-12 max-w-2xl mx-auto">
+            We're a team of passionate developers building the future of AI-powered education.
+          </p>
+          
+          <div className="grid md:grid-cols-4 gap-8">
+            <TeamMember 
+              name="Istiak Ahammed Rhyme"
+              initial="I"
+              gradientColors="from-yellow-400 to-red-500"
+              githubUrl="https://github.com/IstiakAR"
+              linkedinUrl="https://linkedin.com/in/istiak-rhyme"
+              facebookUrl="https://facebook.com/istiak.rhyme"
+            />
+                        
+            <TeamMember 
+              name="Jubayer Ahmed Sojib"
+              initial="J"
+              gradientColors="from-green-400 to-blue-500"
+              githubUrl="#"
+              linkedinUrl="#"
+              facebookUrl="https://facebook.com/suraya.mim"
+            />    
+            <TeamMember 
+              name="Suraya Jannat Mim"
+              initial="S"
+              gradientColors="from-pink-400 to-blue-500"
+              githubUrl="#"
+              linkedinUrl="#"
+              facebookUrl="https://facebook.com/suraya.mim"
+            />
+            <TeamMember 
+              name="Md. Akram Khan"
+              initial="A"
+              gradientColors="from-yellow-400 to-violet-500"
+              githubUrl="#"
+              linkedinUrl="#"
+              facebookUrl="https://facebook.com/akram.khan"
             />
           </div>
         </div>
