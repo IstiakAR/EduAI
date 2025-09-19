@@ -20,57 +20,59 @@ function LandingPage() {
     <div className="h-screen bg-white text-black font-sans">
       {/* Navigation */}
       <nav className="px-6 py-4 md:px-12 md:py-6">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center space-x-3">
+        <div className="flex justify-between items-center md:grid md:grid-cols-3">
+          <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-black rounded-full"></div>
             <h1 className="text-xl font-bold tracking-tight">EduAI</h1>
           </div>
           
-          <div className="hidden md:flex items-center space-x-8">
+          <div className="hidden md:flex items-center justify-center space-x-8">
             <a href="#features" className="hover:underline">Features</a>
             <a href="#about" className="hover:underline">About Us</a>
           </div>
 
-          {/* Mobile Menu Button */}
-          <button 
-            onClick={() => setIsMenuOpen(!isMenuOpen)} 
-            className="md:hidden p-2"
-          >
-            <img src={ThreeLine} alt="Menu" className="w-8 h-8" />
-          </button>
+          <div className="flex justify-end">
+            {/* Mobile Menu Button */}
+            <button 
+              onClick={() => setIsMenuOpen(!isMenuOpen)} 
+              className="md:hidden p-2"
+            >
+              <img src={ThreeLine} alt="Menu" className="w-8 h-8" />
+            </button>
 
-          {/* Desktop Auth Buttons */}
-          <div className="hidden md:flex space-x-4">
-            {user ? (
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-2">
-                  {user.user_metadata?.avatar_url && (
-                    <img 
-                      src={user.user_metadata.avatar_url} 
-                      alt="Profile" 
-                      className="w-8 h-8 rounded-full"
-                    />
-                  )}
-                  <span className="text-sm">
-                    {user.user_metadata?.full_name || user.email?.split('@')[0] || 'User'}
-                  </span>
+            {/* Desktop Auth Buttons */}
+            <div className="hidden md:flex space-x-4">
+              {user ? (
+                <div className="flex items-center space-x-4">
+                  <div className="flex items-center space-x-2">
+                    {user.user_metadata?.avatar_url && (
+                      <img 
+                        src={user.user_metadata.avatar_url} 
+                        alt="Profile" 
+                        className="w-8 h-8 rounded-full"
+                      />
+                    )}
+                    <span className="text-sm">
+                      {user.user_metadata?.full_name || user.email?.split('@')[0] || 'User'}
+                    </span>
+                  </div>
+                  <button
+                    onClick={handleSignOut}
+                    className="px-4 py-2 text-sm border border-black rounded hover:bg-gray-100 transition-colors"
+                  >
+                    Sign Out
+                  </button>
                 </div>
+              ) : (
                 <button
-                  onClick={handleSignOut}
-                  className="px-4 py-2 text-sm border border-black rounded hover:bg-gray-100 transition-colors"
+                  onClick={() => setShowAuthModal(true)}
+                  className="px-4 py-2 text-sm bg-black text-white rounded hover:bg-gray-800 transition-colors"
+                  disabled={loading}
                 >
-                  Sign Out
+                  Get Started
                 </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => setShowAuthModal(true)}
-                className="px-4 py-2 text-sm bg-black text-white rounded hover:bg-gray-800 transition-colors"
-                disabled={loading}
-              >
-                Get Started
-              </button>
-            )}
+              )}
+            </div>
           </div>
         </div>
 
@@ -117,7 +119,6 @@ function LandingPage() {
 
       {/* Hero Section with Geometric Shapes */}
       <section className="relative px-6 py-16 md:px-12 md:py-24 text-center overflow-hidden">
-        {/* Decorative shapes */}
         <div className="absolute top-10 left-10 w-20 h-20 border border-black rounded-full opacity-10"></div>
         <div className="absolute bottom-20 right-10 w-16 h-16 border border-black opacity-10 rotate-45"></div>
         <div className="absolute top-1/4 right-1/4 w-12 h-12 border border-black opacity-10"></div>
