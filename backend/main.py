@@ -1,219 +1,108 @@
-"""
-EduAI - AI-Based Exam Preparation & Assessment Tool
-Main application entry point.
-"""
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from fastapi.responses import JSONResponse
-import time
+from pydantic import BaseModel
 import logging
-from contextlib import asynccontextmanager
+import os
+from typing import Optional
+from dotenv import load_dotenv
 
-# Import routers
-from app.api.auth import router as auth_router
-from app.api.questions import router as questions_router
-from app.api.evaluation import router as evaluation_router
-from app.api.assistant import router as assistant_router
-from app.api.analytics import router as analytics_router
-
-# Import configuration
-from app.core.config import get_settings
-from app.db.database import db_manager
+# Load environment variables from .env file
+load_dotenv()
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-settings = get_settings()
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Application lifespan manager."""
-    # Startup
-    logger.info("Starting EduAI application...")
-    
-    # Check database connection
-    try:
-        if await db_manager.health_check():
-            logger.info("Database connection successful")
-        else:
-            logger.warning("Database connection failed")
-    except Exception as e:
-        logger.error(f"Database health check error: {e}")
-    
-    yield
-    
-    # Shutdown
-    logger.info("Shutting down EduAI application...")
-
-
-# Create FastAPI application
+# Create FastAPI app
 app = FastAPI(
-    title=settings.APP_NAME,
-    version=settings.VERSION,
-    description="""
-    AI-Based Exam Preparation & Assessment Tool
-
-    ## Features
-
-    * **Question Generation**: Generate MCQ, short, and long questions using AI
-    * **AI-Powered Evaluation**: Intelligent answer assessment with detailed feedback
-    * **AI Assistant**: Academic question answering with research capabilities
-    * **Analytics & Progress**: Comprehensive learning analytics and progress tracking
-    * **Authentication**: Secure JWT-based user authentication
-    * **Gamification**: Points, levels, and badges to motivate learning
-
-    ## Authentication
-
-    Most endpoints require authentication. Use the `/auth/login` endpoint to obtain a token,
-    then include it in the Authorization header: `Bearer <token>`
-    """,
-    contact={
-        "name": "EduAI Support",
-        "email": "support@eduai.com",
-    },
-    license_info={
-        "name": "MIT",
-    },
-    lifespan=lifespan
-)
-
-# Add security middleware
-app.add_middleware(
-    TrustedHostMiddleware, 
-    allowed_hosts=["*"]  # Configure appropriately for production
+    title="EduAI - Ultra Simple",
+    description="AI Chat for Education - No Auth Required",
+    version="1.0.0"
 )
 
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins,
+    allow_origins=["http://localhost:3000", "http://localhost:5173", "http://127.0.0.1:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-
-# Request timing middleware
-@app.middleware("http")
-async def add_process_time_header(request: Request, call_next):
-    """Add process time header to responses."""
-    start_time = time.time()
-    response = await call_next(request)
-    process_time = time.time() - start_time
-    response.headers["X-Process-Time"] = str(process_time)
-    return response
-
-
-# Global exception handler
-@app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception):
-    """Global exception handler for unhandled errors."""
-    logger.error(f"Unhandled exception: {exc}", exc_info=True)
+# Simple AI service using Gemini
+class SimpleAI:
+    def __init__(self):
+        self.api_key = os.getenv("GEMINI_API_KEY")
+        if self.api_key:
+            try:
+                import google.generativeai as genai
+                genai.configure(api_key=self.api_key)
+                self.model = genai.GenerativeModel('gemini-2.0-flash')
+                logger.info("✅ Gemini AI initialized successfully")
+            except Exception as e:
+                logger.error(f"❌ Failed to initialize Gemini AI: {e}")
+                self.model = None
+        else:
+            logger.warning("⚠️ GEMINI_API_KEY not found. AI will return demo responses.")
+            self.model = None
     
-    return JSONResponse(
-        status_code=500,
-        content={
-            "detail": "Internal server error",
-            "message": "An unexpected error occurred. Please try again later."
-        }
-    )
+    def get_response(self, message: str) -> str:
+        """Get AI response to user message."""
+        try:
+            if self.model:
+                response = self.model.generate_content(f"You are an educational AI assistant. Please respond helpfully to: {message}")
+                return response.text
+            else:
+                # Demo response when no API key
+                return f"🤖 Demo AI Response: I understand you asked about '{message}'. This is a demo response since no Gemini API key is configured. Please add GEMINI_API_KEY to your .env file for real AI responses."
+        except Exception as e:
+            logger.error(f"AI Error: {e}")
+            return f"Sorry, I encountered an error while processing your request: {str(e)}"
 
+# Initialize AI service
+ai_service = SimpleAI()
 
-# Rate limiting exception handler
-@app.exception_handler(HTTPException)
-async def http_exception_handler(request: Request, exc: HTTPException):
-    """Handle HTTP exceptions with consistent format."""
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={
-            "detail": exc.detail,
-            "status_code": exc.status_code
-        }
-    )
+# Request/Response models
+class ChatRequest(BaseModel):
+    message: str
 
+class ChatResponse(BaseModel):
+    response: str
+    success: bool = True
 
-# Health check endpoint
-@app.get("/health", tags=["Health"])
+# Routes
+@app.get("/health")
 async def health_check():
     """Health check endpoint."""
+    return {
+        "status": "healthy",
+        "service": "EduAI Ultra Simple",
+        "ai_available": ai_service.model is not None
+    }
+
+@app.post("/chat", response_model=ChatResponse)
+async def chat(request: ChatRequest):
+    """Simple chat endpoint - no auth required."""
     try:
-        db_healthy = await db_manager.health_check()
+        if not request.message.strip():
+            raise HTTPException(status_code=400, detail="Message cannot be empty")
         
-        return {
-            "status": "healthy" if db_healthy else "unhealthy",
-            "timestamp": time.time(),
-            "database": "connected" if db_healthy else "disconnected",
-            "version": settings.VERSION
-        }
-    except Exception as e:
-        logger.error(f"Health check failed: {e}")
-        return JSONResponse(
-            status_code=503,
-            content={
-                "status": "unhealthy",
-                "timestamp": time.time(),
-                "error": str(e),
-                "version": settings.VERSION
-            }
+        logger.info(f"💬 Processing message: {request.message[:50]}...")
+        
+        # Get AI response
+        ai_response = ai_service.get_response(request.message)
+        
+        logger.info(f"✅ AI response generated successfully")
+        
+        return ChatResponse(
+            response=ai_response,
+            success=True
         )
-
-
-# Root endpoint
-@app.get("/", tags=["Root"])
-async def read_root():
-    """Welcome endpoint."""
-    return {
-        "message": "Welcome to EduAI - AI-Based Exam Preparation & Assessment Tool",
-        "version": settings.VERSION,
-        "docs": "/docs",
-        "health": "/health"
-    }
-
-
-# API version endpoint
-@app.get("/api/v1", tags=["API Info"])
-async def api_info():
-    """API information endpoint."""
-    return {
-        "name": settings.APP_NAME,
-        "version": settings.VERSION,
-        "description": "AI-powered educational platform API",
-        "endpoints": {
-            "authentication": "/api/v1/auth",
-            "questions": "/api/v1/questions", 
-            "evaluation": "/api/v1/evaluate",
-            "assistant": "/api/v1/assistant",
-            "analytics": "/api/v1/analytics"
-        },
-        "features": [
-            "AI Question Generation",
-            "Intelligent Answer Evaluation", 
-            "Academic AI Assistant",
-            "Learning Analytics",
-            "Progress Tracking",
-            "Gamification"
-        ]
-    }
-
-
-# Include API routers
-app.include_router(auth_router, prefix="/api/v1")
-app.include_router(questions_router, prefix="/api/v1")
-app.include_router(evaluation_router, prefix="/api/v1")
-app.include_router(assistant_router, prefix="/api/v1")
-app.include_router(analytics_router, prefix="/api/v1")
-
+        
+    except Exception as e:
+        logger.error(f"❌ Chat error: {e}")
+        raise HTTPException(status_code=500, detail=f"Chat processing failed: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn
-    
-    uvicorn.run(
-        "main:app",
-        host=settings.HOST,
-        port=settings.PORT,
-        reload=settings.DEBUG,
-        log_level="info"
-    )
+    uvicorn.run(app, host="0.0.0.0", port=8000)

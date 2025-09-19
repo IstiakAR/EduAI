@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import ChatIcon from '../assets/chat.svg';
+import { apiService } from '../services/apiService';
 
 function ChatPage() {
   const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   
   const [examStarted, setExamStarted] = useState(true);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -27,29 +29,53 @@ function ChatPage() {
     }
   ];
 
-  const [messages] = useState([
-    { 
-      id: 1, 
-      from: "ai", 
-      text: "Hello! I'm your AI Tutor. I can help you prepare for your upcoming exams. What subject are we focusing on today?" 
-    },
-    { 
-      id: 2, 
-      from: "user", 
-      text: "I need help with my Math exam." 
-    },
-    { 
-      id: 3, 
-      from: "ai", 
-      text: "Of course! Let's start with some algebra questions. I'll display the first question in the exam section on the right." 
-    }
-  ]);
+  // Chat messages - now dynamic
+  const [messages, setMessages] = useState([]);
   
   const currentQuestion = examQuestions[currentQuestionIndex];
 
-  const sendMessage = () => {
-    if (!input.trim()) return;
+  const sendMessage = async () => {
+    if (!input.trim() || isLoading) return;
+    
+    const userMessage = {
+      id: Date.now(),
+      from: "user",
+      text: input.trim()
+    };
+    
+    // Add user message immediately
+    setMessages(prev => [...prev, userMessage]);
+    const currentInput = input.trim();
     setInput('');
+    setIsLoading(true);
+    
+    try {
+      // Get AI response
+      const aiResponse = await apiService.sendMessage(currentInput);
+      
+      // Add AI response
+      const aiMessage = {
+        id: Date.now() + 1,
+        from: "ai",
+        text: aiResponse
+      };
+      
+      setMessages(prev => [...prev, aiMessage]);
+      
+    } catch (error) {
+      console.error('Failed to get AI response:', error);
+      
+      // Add error message
+      const errorMessage = {
+        id: Date.now() + 1,
+        from: "ai",
+        text: "Sorry, I'm having trouble connecting to the AI service. Please try again later."
+      };
+      
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleAnswerChange = (value) => {
@@ -175,6 +201,18 @@ function ChatPage() {
               </div>
             </div>
           ))}
+          
+          {/* Loading indicator */}
+          {isLoading && (
+            <div className="flex justify-start">
+              <div className="bg-gray-100 text-gray-900 px-4 py-3 rounded-2xl">
+                <div className="flex items-center space-x-2">
+                  <div className="animate-pulse">🤖</div>
+                  <span className="text-sm">AI is thinking...</span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
         
         {/* Chat Input */}
@@ -190,12 +228,13 @@ function ChatPage() {
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Type your message..."
-              className="flex-1 px-4 py-3 border border-gray-300 rounded-full focus:outline-none focus:border-gray-400 text-sm"
+              placeholder={isLoading ? "AI is thinking..." : "Type your message..."}
+              disabled={isLoading}
+              className="flex-1 px-4 py-3 border border-gray-300 rounded-full focus:outline-none focus:border-gray-400 text-sm disabled:opacity-50"
             />
             <button
               type="submit"
-              disabled={!input.trim()}
+              disabled={!input.trim() || isLoading}
               className="p-3 text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
