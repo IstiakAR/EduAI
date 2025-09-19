@@ -19,7 +19,7 @@ print("""curl -X POST "http://localhost:8000/api/v1/questions/generate" \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \\
   -d '{
-    "subject": "Mathematics",
+    "subject": "",
     "topic": "Algebra",
     "difficulty": "easy",
     "question_type": "mcq",
