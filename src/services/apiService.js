@@ -737,6 +737,88 @@ Respond with just a number between 0 and ${maxPoints}.`;
       throw error;
     }
   }
+
+  // User Profile Management
+  async getUserProfile(userId) {
+    try {
+      console.log('=== API SERVICE: Getting user profile ===');
+      console.log('UserId:', userId);
+
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+
+      if (error) {
+        console.log('User profile not found, creating default profile...');
+        // If user doesn't exist, create default profile
+        const defaultProfile = {
+          user_id: userId,
+          display_name: '',
+          school: '',
+          preferences: {
+            difficulty_preference: 'medium',
+            exam_type_preference: 'mcq',
+            notifications: true,
+            auto_save: true
+          }
+        };
+
+        const { data: newData, error: insertError } = await supabase
+          .from('users')
+          .insert([defaultProfile])
+          .select()
+          .single();
+
+        if (insertError) {
+          console.error('Error creating default profile:', insertError);
+          throw insertError;
+        }
+
+        console.log('Created default profile:', newData);
+        return newData;
+      }
+
+      console.log('Loaded user profile:', data);
+      return data;
+    } catch (error) {
+      console.error('Error getting user profile:', error);
+      throw error;
+    }
+  }
+
+  async updateUserProfile(userId, profileData) {
+    try {
+      console.log('=== API SERVICE: Updating user profile ===');
+      console.log('UserId:', userId);
+      console.log('Profile data:', profileData);
+
+      const updateData = {
+        display_name: profileData.display_name,
+        school: profileData.school,
+        preferences: profileData.preferences,
+        updated_at: new Date().toISOString()
+      };
+
+      const { data, error } = await supabase
+        .from('users')
+        .upsert([{ user_id: userId, ...updateData }])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error updating profile:', error);
+        throw error;
+      }
+
+      console.log('Updated profile:', data);
+      return data;
+    } catch (error) {
+      console.error('Error updating user profile:', error);
+      throw error;
+    }
+  }
 }
 
 export const apiService = new ApiService();

@@ -39,10 +39,10 @@ function Layout({ children, showHero = false, heroContent = null, onNavigate }) 
           </div>
           
           <div className="hidden md:flex items-center justify-center space-x-8">
-            <button onClick={() => handleNavClick('landing')} className="hover:underline">Home</button>
-            <button onClick={() => handleNavClick('dashboard')} className="hover:underline">Dashboard</button>
-            <button onClick={() => handleNavClick('chat')} className="hover:underline">Chat</button>
-            <a href="#about" className="hover:underline">About Us</a>
+            <a href="/" className="hover:underline">Home</a>
+            <a href="/dashboard" className="hover:underline">Dashboard</a>
+            <a href="/#features" className="hover:underline">Features</a>
+            <a href="/#about" className="hover:underline">About Us</a>
           </div>
 
           <div className="flex justify-end">
