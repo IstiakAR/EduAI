@@ -3,10 +3,12 @@ import { useAuth } from '../hooks/useAuth';
 import supabase from '../supabase';
 import Avatar from './Avatar';
 import ThreeLine from '../assets/three-line.svg';
+import AuthModal from "./AuthModal";
 
 function Layout({ children, showHero = false, heroContent = null, onNavigate }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, loading } = useAuth();
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -77,12 +79,12 @@ function Layout({ children, showHero = false, heroContent = null, onNavigate }) 
                   </button>
                 </div>
               ) : (
-                <a
-                  href="/"
+                <button
+                  onClick={() => setShowAuthModal(true)}
                   className="px-4 py-2 text-sm bg-black text-white rounded hover:bg-gray-800 transition-colors"
                 >
                   Get Started
-                </a>
+                </button>
               )}
             </div>
           </div>
@@ -142,6 +144,11 @@ function Layout({ children, showHero = false, heroContent = null, onNavigate }) 
       <main className="relative z-10">
         {children}
       </main>
+      {showAuthModal && !user && (
+        <AuthModal 
+          onClose={() => setShowAuthModal(false)} 
+        />
+      )}
     </div>
   );
 }

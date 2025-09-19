@@ -1,5 +1,9 @@
 # EduAI - AI-Powered Learning Platform
 
+## � Quick View
+
+https://edu-ai-lilac.vercel.app/
+
 ## � Quick Setup
 
 ### 1. Install Dependencies
