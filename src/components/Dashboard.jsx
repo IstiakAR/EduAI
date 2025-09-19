@@ -3,9 +3,11 @@ import { useAuth } from '../hooks/useAuth';
 import Layout from './Layout';
 import Avatar from './Avatar';
 import supabase from '../supabase';
+import { useNavigate } from 'react-router-dom';
 
 function Dashboard({ onNavigate }) {
     const { user, loading } = useAuth();
+    const navigate = useNavigate();
     const [stats, setStats] = useState({
         questionsAsked: 0,
         examsCompleted: 0,
@@ -76,6 +78,7 @@ function Dashboard({ onNavigate }) {
                     totalQuestions += messages.filter(msg => msg.role === 'user').length;
                 });
             }
+            totalQuestions = chats.length;
 
             // Calculate completed exams
             const completedExams = (exams && !examsError) ? exams.filter(exam => exam.status === 'completed').length : 0;
@@ -231,10 +234,8 @@ function Dashboard({ onNavigate }) {
     };
 
     const [quickActions] = useState([
-        { id: 1, title: 'Ask a Question', description: 'Get instant AI-powered answers', icon: '❓', action: 'chat' },
-        { id: 2, title: 'Take an Exam', description: 'Test your knowledge', icon: '📝', action: 'chat' },
-        { id: 3, title: 'View Progress', description: 'Track your learning journey', icon: '📊', action: 'dashboard' },
-        { id: 4, title: 'Study Materials', description: 'Access learning resources', icon: '📚', action: 'chat' },
+        { id: 1, title: 'Ask a Question', description: 'Get instant AI-powered answers', action: 'chat' },
+        { id: 2, title: 'Take an Exam', description: 'Test your knowledge', action: 'chat' },
     ]);
 
     if (loading || dataLoading) {
@@ -281,14 +282,6 @@ function Dashboard({ onNavigate }) {
                             </h1>
                             <p className="text-lg text-gray-600">Ready to continue your learning journey?</p>
                         </div>
-                        <div className="flex items-center space-x-4">
-                            <Avatar 
-                                src={user.user_metadata?.avatar_url}
-                                alt={`${user.user_metadata?.full_name || user.email?.split('@')[0] || 'User'}'s avatar`}
-                                size="w-16 h-16"
-                                fallbackText={(user.user_metadata?.full_name || user.email?.split('@')[0] || 'U')[0].toUpperCase()}
-                            />
-                        </div>
                     </div>
 
                     {/* Stats Grid */}
@@ -300,14 +293,6 @@ function Dashboard({ onNavigate }) {
                         <div className="bg-gray-50 p-6 rounded-sm border border-gray-200">
                             <div className="text-2xl md:text-3xl font-bold mb-2">{stats.examsCompleted}</div>
                             <div className="text-sm text-gray-600">Exams Completed</div>
-                        </div>
-                        <div className="bg-gray-50 p-6 rounded-sm border border-gray-200">
-                            <div className="text-2xl md:text-3xl font-bold mb-2">{stats.hoursStudied}</div>
-                            <div className="text-sm text-gray-600">Hours Studied</div>
-                        </div>
-                        <div className="bg-gray-50 p-6 rounded-sm border border-gray-200">
-                            <div className="text-2xl md:text-3xl font-bold mb-2">{stats.currentStreak}</div>
-                            <div className="text-sm text-gray-600">Day Streak</div>
                         </div>
                     </div>
                 </div>
@@ -324,7 +309,7 @@ function Dashboard({ onNavigate }) {
                         {quickActions.map((action) => (
                             <button
                                 key={action.id}
-                                onClick={() => onNavigate && onNavigate(action.action)}
+                                onClick={() => navigate('/' + action.action)}
                                 className="p-6 border border-black rounded-sm hover:bg-gray-50 transition-colors text-left group"
                             >
                                 <div className="text-3xl mb-4">{action.icon}</div>
@@ -371,53 +356,6 @@ function Dashboard({ onNavigate }) {
                                 <p className="text-sm mt-2">Start by asking a question or taking an exam!</p>
                             </div>
                         )}
-                    </div>
-                    <div className="text-center mt-8">
-                        <button className="px-6 py-3 border border-black rounded hover:bg-gray-100 transition-colors">
-                            View All Activity
-                        </button>
-                    </div>
-                </div>
-            </section>
-
-            {/* Progress Section */}
-            <section className="px-6 py-8 md:px-12">
-                <div className="max-w-6xl mx-auto">
-                    <div className="mb-8">
-                        <div className="w-16 h-1 bg-black mb-4"></div>
-                        <h2 className="text-2xl md:text-3xl font-bold">Learning Progress</h2>
-                    </div>
-                    <div className="grid md:grid-cols-2 gap-8">
-                        <div className="bg-gray-50 p-8 rounded-sm border border-gray-200">
-                            <h3 className="text-lg font-bold mb-4">Weekly Goal</h3>
-                            <div className="mb-4">
-                                <div className="flex justify-between text-sm mb-2">
-                                    <span>5 of 7 days completed</span>
-                                    <span>71%</span>
-                                </div>
-                                <div className="w-full bg-gray-200 rounded-full h-2">
-                                    <div className="bg-black h-2 rounded-full" style={{ width: '71%' }}></div>
-                                </div>
-                            </div>
-                            <p className="text-sm text-gray-600">Keep it up! 2 more days to reach your weekly goal.</p>
-                        </div>
-                        <div className="bg-gray-50 p-8 rounded-sm border border-gray-200">
-                            <h3 className="text-lg font-bold mb-4">Knowledge Areas</h3>
-                            <div className="space-y-3">
-                                <div className="flex justify-between items-center">
-                                    <span className="text-sm">Machine Learning</span>
-                                    <span className="text-sm font-medium">Advanced</span>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                    <span className="text-sm">Python Programming</span>
-                                    <span className="text-sm font-medium">Expert</span>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                    <span className="text-sm">Data Structures</span>
-                                    <span className="text-sm font-medium">Intermediate</span>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </section>
