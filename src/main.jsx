@@ -7,7 +7,7 @@ import AppContent from './App'
 import LandingPage from './components/LandingPage'
 import ChatPage from './components/ChatPage'
 import Dashboard from './components/Dashboard'
-import History from './components/History'
+import Settings from './components/Settings'
 
 const router = createBrowserRouter([
   {
@@ -27,8 +27,8 @@ const router = createBrowserRouter([
     element: <Dashboard />,
   },
   {
-    path: "/history",
-    element: <History />,
+    path: "/settings",
+    element: <Settings />,
   }
 ]);
 

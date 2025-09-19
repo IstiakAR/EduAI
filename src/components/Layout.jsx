@@ -35,8 +35,8 @@ function Layout({ children, showHero = false, heroContent = null }) {
           <div className="hidden md:flex items-center justify-center space-x-8">
             <a href="/" className="hover:underline">Home</a>
             <a href="/dashboard" className="hover:underline">Dashboard</a>
-            <a href="#features" className="hover:underline">Features</a>
-            <a href="#about" className="hover:underline">About Us</a>
+            <a href="/#features" className="hover:underline">Features</a>
+            <a href="/#about" className="hover:underline">About Us</a>
           </div>
 
           <div className="flex justify-end">
