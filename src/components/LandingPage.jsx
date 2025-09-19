@@ -1,160 +1,47 @@
 import { useState } from "react";
-import AuthModal from './AuthModal';
-import FeatureCard from './FeatureCard';
-import TestimonialCard from './TestimonialCard';
-import TeamMember from './TeamMember';
-import Avatar from './Avatar';
-import { useAuth } from '../hooks/useAuth';
-import supabase from '../supabase';
-
-import ThreeLine from '../assets/three-line.svg';
+import AuthModal from "./AuthModal";
+import FeatureCard from "./FeatureCard";
+import TestimonialCard from "./TestimonialCard";
+import TeamMember from "./TeamMember";
+import Layout from "./Layout";
+import { useAuth } from "../hooks/useAuth";
 
 function LandingPage() {
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { user, loading } = useAuth();
+  const { user } = useAuth();
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-  };
+  const heroContent = (
+    <>
+      <div className="mb-6">
+        <div className="w-24 h-1 bg-black mx-auto mb-4"></div>
+        <h2 className="text-3xl md:text-5xl font-bold mb-6 leading-tight tracking-tight">
+          AI-Powered Learning<br />Experience
+        </h2>
+      </div>
+      <p className="text-lg md:text-xl mb-8 max-w-2xl mx-auto leading-relaxed">
+        Ask intelligent questions, take adaptive exams, and accelerate your education journey with our AI platform.
+      </p>
+      <div className="flex flex-col sm:flex-row gap-4 justify-center">
+        {user ? (
+          <div className="text-center">
+            <button className="px-8 py-4 bg-black text-white rounded-sm font-medium hover:bg-gray-800 transition-colors" onClick={() => window.location.href = "/chat"}>
+              Countine Learning
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setShowAuthModal(true)}
+            className="px-8 py-4 bg-black text-white rounded-sm font-medium hover:bg-gray-800 transition-colors"
+          >
+            Start Learning Now
+          </button>
+        )}
+      </div>
+    </>
+  );
 
   return (
-    <div className="h-screen bg-white text-black font-sans">
-      {/* Navigation */}
-      <nav className="px-6 py-4 md:px-12 md:py-6">
-        <div className="flex justify-between items-center md:grid md:grid-cols-3">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-black rounded-full"></div>
-            <h1 className="text-xl font-bold tracking-tight">EduAI</h1>
-          </div>
-          
-          <div className="hidden md:flex items-center justify-center space-x-8">
-            <a href="#features" className="hover:underline">Features</a>
-            <a href="#about" className="hover:underline">About Us</a>
-          </div>
-
-          <div className="flex justify-end">
-            {/* Mobile Menu Button */}
-            <button 
-              onClick={() => setIsMenuOpen(!isMenuOpen)} 
-              className="md:hidden p-2"
-            >
-              <img src={ThreeLine} alt="Menu" className="w-8 h-8" />
-            </button>
-
-            {/* Desktop Auth Buttons */}
-            <div className="hidden md:flex space-x-4">
-              {user ? (
-                <div className="flex items-center space-x-4">
-                  <div className="flex items-center space-x-2">
-                    <Avatar 
-                      src={user.user_metadata?.avatar_url}
-                      alt={`${user.user_metadata?.full_name || user.email?.split('@')[0] || 'User'}'s avatar`}
-                      size="w-8 h-8"
-                      fallbackText={(user.user_metadata?.full_name || user.email?.split('@')[0] || 'U')[0].toUpperCase()}
-                    />
-                    <span className="text-sm">
-                      {user.user_metadata?.full_name || user.email?.split('@')[0] || 'User'}
-                    </span>
-                  </div>
-                  <button
-                    onClick={handleSignOut}
-                    className="px-4 py-2 text-sm border border-black rounded hover:bg-gray-100 transition-colors"
-                  >
-                    Sign Out
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setShowAuthModal(true)}
-                  className="px-4 py-2 text-sm bg-black text-white rounded hover:bg-gray-800 transition-colors"
-                  disabled={loading}
-                >
-                  Get Started
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Mobile Menu */}
-        {isMenuOpen && (
-          <div className="md:hidden mt-4 space-y-4 py-4 text-center">
-            <a href="#features" className="block hover:underline">Features</a>
-            <a href="#about" className="block hover:underline">About Us</a>
-            <div className="pt-4 space-y-2">
-              {user ? (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-center space-x-2 py-2">
-                    <Avatar 
-                      src={user.user_metadata?.avatar_url}
-                      alt={`${user.user_metadata?.full_name || user.email?.split('@')[0] || 'User'}'s avatar`}
-                      size="w-6 h-6"
-                      fallbackText={(user.user_metadata?.full_name || user.email?.split('@')[0] || 'U')[0].toUpperCase()}
-                    />
-                    <span className="text-sm">
-                      {user.user_metadata?.full_name || user.email?.split('@')[0] || 'User'}
-                    </span>
-                  </div>
-                  <button
-                    onClick={handleSignOut}
-                    className="w-full py-2 text-sm border border-black rounded hover:bg-gray-100 transition-colors"
-                  >
-                    Sign Out
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setShowAuthModal(true)}
-                  className="w-full py-2 text-sm bg-black text-white rounded hover:bg-gray-800 transition-colors"
-                  disabled={loading}
-                >
-                  Get Started
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-      </nav>
-
-      {/* Hero Section with Geometric Shapes */}
-      <section className="relative px-6 py-16 md:px-12 md:py-24 text-center overflow-hidden">
-        <div className="absolute top-10 left-10 w-20 h-20 border border-black rounded-full opacity-10"></div>
-        <div className="absolute bottom-20 right-10 w-16 h-16 border border-black opacity-10 rotate-45"></div>
-        <div className="absolute top-1/4 right-1/4 w-12 h-12 border border-black opacity-10"></div>
-        
-        <div className="max-w-4xl mx-auto relative">
-          <div className="mb-6">
-            <div className="w-24 h-1 bg-black mx-auto mb-4"></div>
-            <h2 className="text-3xl md:text-5xl font-bold mb-6 leading-tight tracking-tight">
-              AI-Powered Learning<br />Experience
-            </h2>
-          </div>
-          <p className="text-lg md:text-xl mb-8 max-w-2xl mx-auto leading-relaxed">
-            Ask intelligent questions, take adaptive exams, and accelerate your education journey with our AI platform.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            {user ? (
-              <div className="text-center">
-                <p className="text-lg mb-4">Welcome back, {user.user_metadata?.full_name || user.email?.split('@')[0] || 'User'}!</p>
-                <button className="px-8 py-4 bg-black text-white rounded-sm font-medium hover:bg-gray-800 transition-colors" onClick={() => window.location.href = '/chat'}>
-                  Continue Learning
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => setShowAuthModal(true)}
-                className="px-8 py-4 bg-black text-white rounded-sm font-medium hover:bg-gray-800 transition-colors"
-                disabled={loading}
-              >
-                Start Learning Now
-              </button>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section with Custom Shapes */}
+    <Layout showHero={true} heroContent={heroContent}>
       <section id="features" className="px-6 py-16 md:px-12 md:py-24">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
@@ -181,7 +68,6 @@ function LandingPage() {
         </div>
       </section>
 
-      {/* Testimonials Section */}
       <section className="px-6 py-16 md:px-12 md:py-24 bg-gray-50">
         <div className="max-w-4xl mx-auto text-center">
           <div className="w-16 h-1 bg-black mx-auto mb-4"></div>
@@ -199,13 +85,12 @@ function LandingPage() {
         </div>
       </section>
 
-      {/* About Us Section */}
       <section id="about" className="px-6 py-16 md:px-12 md:py-24">
         <div className="max-w-4xl mx-auto text-center">
           <div className="w-16 h-1 bg-black mx-auto mb-4"></div>
           <h3 className="text-2xl md:text-3xl font-bold mb-12">About Us</h3>
           <p className="text-lg text-gray-600 mb-12 max-w-2xl mx-auto">
-            We're a team of passionate developers building the future of AI-powered education.
+            We are a team of passionate developers building the future of AI-powered education.
           </p>
           
           <div className="grid md:grid-cols-4 gap-8">
@@ -246,8 +131,14 @@ function LandingPage() {
         </div>
       </section>
 
-      {/* Simplified Footer for Hackathon */}
-      <footer className="px-6 py-12 md:px-12 border-t border-gray-200">
+      {showAuthModal && !user && (
+        <AuthModal 
+          onClose={() => setShowAuthModal(false)} 
+        />
+      )}
+
+      {/* Footer */}
+      <footer className="relative z-10 px-6 py-12 md:px-12 border-t border-gray-200 mt-16">
         <div className="max-w-6xl mx-auto text-center">
           <div className="flex items-center justify-center space-x-3 mb-4">
             <div className="w-8 h-8 bg-black rounded-full"></div>
@@ -261,14 +152,8 @@ function LandingPage() {
           </p>
         </div>
       </footer>
-
-      {/* Auth Modal */}
-      {showAuthModal && !user && (
-        <AuthModal 
-          onClose={() => setShowAuthModal(false)} 
-        />
-      )}
-    </div>
+    </Layout>
+    
   );
 }
 

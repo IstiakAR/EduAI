@@ -5,6 +5,9 @@ import { apiService } from '../services/apiService';
 function ChatPage() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showNewChatModal, setShowNewChatModal] = useState(false);
+  const [newChatSubject, setNewChatSubject] = useState('');
+  const [currentChatSubject, setCurrentChatSubject] = useState('');
   
   const [examStarted, setExamStarted] = useState(true);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -33,6 +36,32 @@ function ChatPage() {
   const [messages, setMessages] = useState([]);
   
   const currentQuestion = examQuestions[currentQuestionIndex];
+
+  const handleNewChat = () => {
+    setShowNewChatModal(true);
+  };
+
+  const createNewChat = () => {
+    if (newChatSubject.trim()) {
+      setCurrentChatSubject(newChatSubject.trim());
+      setMessages([]);
+      setNewChatSubject('');
+      setShowNewChatModal(false);
+      
+      // Add a welcome message based on the subject
+      const welcomeMessage = {
+        id: Date.now(),
+        from: "ai",
+        text: `Hello! I'm ready to help you with ${newChatSubject.trim()}. What would you like to know?`
+      };
+      setMessages([welcomeMessage]);
+    }
+  };
+
+  const cancelNewChat = () => {
+    setNewChatSubject('');
+    setShowNewChatModal(false);
+  };
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
@@ -129,7 +158,11 @@ function ChatPage() {
         {/* Navigation Icons */}
         <div className="space-y-6">
           {/* Add New/Plus Icon */}
-          <button className="w-8 h-8 bg-black rounded-full flex items-center justify-center text-white text-lg font-bold">
+                    {/* Add New/Plus Icon */}
+          <button 
+            onClick={handleNewChat}
+            className="w-8 h-8 bg-black rounded-full flex items-center justify-center text-white text-lg font-bold hover:bg-gray-800 transition-colors"
+          >
             +
           </button>
           
@@ -157,13 +190,6 @@ function ChatPage() {
             </svg>
           </button>
           
-          {/* Help/Question Icon */}
-          <button className="p-2 hover:bg-gray-300 rounded-lg transition-colors">
-            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </button>
-          
           {/* User Avatar */}
           <div className="w-8 h-8 bg-orange-400 rounded-full flex items-center justify-center">
             <span className="text-white text-sm font-medium">U</span>
@@ -179,7 +205,12 @@ function ChatPage() {
             <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center">
               <span className="text-white text-sm font-bold">AI</span>
             </div>
-            <h2 className="text-lg font-medium text-gray-900">AI</h2>
+            <div>
+              <h2 className="text-lg font-medium text-gray-900">AI Assistant</h2>
+              {currentChatSubject && (
+                <p className="text-sm text-gray-500">{currentChatSubject}</p>
+              )}
+            </div>
           </div>
         </div>
         
@@ -320,6 +351,52 @@ function ChatPage() {
           </button>
         </div>
       </div>
+
+      {/* New Chat Modal */}
+      {showNewChatModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            <div className="mb-4">
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Start New Chat</h3>
+              <p className="text-sm text-gray-600">What subject would you like to discuss?</p>
+            </div>
+            
+            <div className="mb-6">
+              <input
+                type="text"
+                value={newChatSubject}
+                onChange={(e) => setNewChatSubject(e.target.value)}
+                placeholder="e.g., Mathematics, Physics, Programming..."
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    createNewChat();
+                  } else if (e.key === 'Escape') {
+                    cancelNewChat();
+                  }
+                }}
+              />
+            </div>
+            
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={cancelNewChat}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={createNewChat}
+                disabled={!newChatSubject.trim()}
+                className="px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Start Chat
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
