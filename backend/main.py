@@ -23,19 +23,21 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Add CORS middleware
+# Add CORS middleware with more permissive settings
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000", 
         "http://localhost:5173", 
         "http://127.0.0.1:3000",
-        "https://edu-ai-lilac.vercel.app/",
-        "https://eduai-dev.netlify.app/"
+        "https://edu-ai-lilac.vercel.app",
+        "https://eduai-dev.netlify.app",
+        "*"
     ],
-    allow_credentials=True,
-    allow_methods=["*"],
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # Simple AI service using Gemini
